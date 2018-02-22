@@ -23,17 +23,21 @@ private:
 
 	float SteeringThrow;
 
+	//[N]
 	UPROPERTY(EditAnywhere)
-	float MaxDrivingForce = 1000.0;
+	float MaxDrivingForce = 20000.0;
 
+	//[m]
 	UPROPERTY(EditAnywhere)
-	float MaxDegreesPerSec = 90.0;
+	float MinTurningRadius = 10;
+
+	float NormalForce;
 
 	FVector Force;
 
 	FVector Acceleration;
 
-	//Mass of the Pawn
+	//Mass of the Pawn [Kg]
 	UPROPERTY(EditAnywhere)
 	float Mass = 1000.0;
 
@@ -51,10 +55,15 @@ protected:
 
 	void ApplyRotation(float DeltaTime);
 
-	FVector GetResistance();
+	FVector GetAirResistance();
+
+	FVector GetRollingResistance();
 
 	UPROPERTY(EditAnywhere)
 	float DragCoefficient = 16;
+
+	UPROPERTY(EditAnywhere)
+	float RollingResistanceCoefficient = 0.015;
 
 public:	
 

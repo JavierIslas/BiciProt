@@ -2,6 +2,7 @@
 
 #include "BiciPawn.h"
 #include "Components/InputComponent.h"
+#include "Engine/World.h"
 
 // Sets default values
 ABiciPawn::ABiciPawn()
@@ -24,7 +25,8 @@ void ABiciPawn::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	Force = GetActorForwardVector() * MaxDrivingForce * Throttle;
-	Force += GetResistance();
+	Force += GetAirResistance();
+	Force += GetRollingResistance();
 
 	Acceleration = Force / Mass;
 
@@ -37,15 +39,23 @@ void ABiciPawn::Tick(float DeltaTime)
 
 void ABiciPawn::ApplyRotation(float DeltaTime)
 {
-	float RotationAngle = MaxDegreesPerSec * DeltaTime * SteeringThrow;
-	FQuat RotationDelta(GetActorUpVector(), FMath::DegreesToRadians(RotationAngle));
+	float DeltaLocation = FVector::DotProduct(GetActorForwardVector(), Velocity) * DeltaTime;
+	float RotationAngle = (DeltaLocation / MinTurningRadius) * SteeringThrow;
+	FQuat RotationDelta(GetActorUpVector(), RotationAngle);
 	Velocity = RotationDelta.RotateVector(Velocity);
 	AddActorWorldRotation(RotationDelta);
 }
 
-FVector ABiciPawn::GetResistance()
+FVector ABiciPawn::GetAirResistance()
 {
 	return - Velocity.GetSafeNormal() * Velocity.SizeSquared() * DragCoefficient;
+}
+
+FVector ABiciPawn::GetRollingResistance()
+{
+	float AccelerationDueGravity = - GetWorld()->GetGravityZ() / 100;
+	NormalForce = Mass * AccelerationDueGravity;
+	return - Velocity.GetSafeNormal() * RollingResistanceCoefficient * NormalForce;
 }
 
 void ABiciPawn::UpdateLocationFromVelocity(float DeltaTime)
