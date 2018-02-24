@@ -6,6 +6,41 @@
 #include "GameFramework/Pawn.h"
 #include "BiciPawn.generated.h"
 
+USTRUCT()
+struct FBiciMoves
+{
+	GENERATED_USTRUCT_BODY()
+
+
+	UPROPERTY()
+	float Throttle;
+
+	UPROPERTY()
+	float SteeringThrow;
+
+	UPROPERTY()
+	float DeltaTime;
+
+	UPROPERTY()
+	float Time;
+
+};
+
+USTRUCT()
+struct FBiciState
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FVector Velocity;
+
+	UPROPERTY()
+	FTransform Transform;
+
+	FBiciMoves LastMove;
+
+};
+
 UCLASS()
 class BICIPROT_API ABiciPawn : public APawn
 {
@@ -13,6 +48,13 @@ class BICIPROT_API ABiciPawn : public APawn
 
 private:
 
+	FBiciMoves CreateMove(float DeltaTime);
+
+	void SimulateMove(FBiciMoves Move);
+
+	void ClearAcknowledgeMoves(FBiciMoves LastMove);
+
+	UPROPERTY()
 	FVector Velocity;
 
 	float Speed;
@@ -41,11 +83,20 @@ private:
 	UPROPERTY(EditAnywhere)
 	float Mass = 1000.0;
 
+	TArray<FBiciMoves> UnacknowledgedMoves;
+
 	void MoveForward(float Value);
 
 	void MoveRight(float Value);
 
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_SendMove(FBiciMoves Move);
 
+	UFUNCTION()
+	void OnRep_ServerState();
+
+	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
+	FBiciState ServerState;
 
 protected:
 	// Called when the game starts or when spawned
@@ -53,7 +104,7 @@ protected:
 
 	void UpdateLocationFromVelocity(float DeltaTime);
 
-	void ApplyRotation(float DeltaTime);
+	void ApplyRotation(float DeltaTime, float SteeringThrow);
 
 	FVector GetAirResistance();
 
