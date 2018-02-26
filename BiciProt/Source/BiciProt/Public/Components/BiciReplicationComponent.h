@@ -22,6 +22,25 @@ struct FBiciState
 
 };
 
+USTRUCT()
+struct FCubicSpline
+{
+	GENERATED_USTRUCT_BODY()
+
+	FVector	StartLocation, StartDerivative, TargetLocation, TargetDerivative;
+
+	FVector InterpolateLocation(float LerpRatio) const 
+	{
+		return FMath::CubicInterp(StartLocation, StartDerivative, TargetLocation, TargetDerivative, LerpRatio); 
+	}
+
+	FVector InterpolateDerivative(float LerpRatio) const
+	{ 
+		return FMath::CubicInterpDerivative(StartLocation, StartDerivative, TargetLocation, TargetDerivative, LerpRatio); 
+	}
+
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class BICIPROT_API UBiciReplicationComponent : public UActorComponent
 {
@@ -43,10 +62,26 @@ private:
 	UPROPERTY()
 	class UBiciMovementComponent* MovementComp;
 
+	UPROPERTY()
+	class USceneComponent* MeshOffSetRoot;
+
+	UFUNCTION(BlueprintCallable)
+	void SetMeshOffSetRoot(USceneComponent* Root) { MeshOffSetRoot = Root; }
+
 	UFUNCTION()
 	void UpdateServerState(const FBiciMoves& Move);
 
 	void ClientTick(float DeltaTime);
+
+	float VelocityToDerivative();
+
+	void InterpolateRotation(float LerpRatio);
+
+	void InterpolateVelocity(const FCubicSpline &Spline, float LerpRatio);
+
+	void InterpolateLocation(const FCubicSpline &Spline, float LerpRatio);
+
+	FCubicSpline CreateSpline();
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendMove(FBiciMoves Move);
@@ -72,4 +107,6 @@ private:
 	FTransform ClientStartTransform;
 
 	FVector ClientStartVelocity;
+
+	float ClientSimulatedTime;
 };

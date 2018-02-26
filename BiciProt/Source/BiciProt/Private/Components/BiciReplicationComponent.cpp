@@ -3,6 +3,7 @@
 #include "BiciReplicationComponent.h"
 #include "UnrealNetwork.h"
 #include "BiciMovementComponent.h"
+#include "GameFramework/Actor.h"
 
 
 // Sets default values for this component's properties
@@ -68,30 +69,63 @@ void UBiciReplicationComponent::ClientTick(float DeltaTime)
 
 	if (ClientTimeBetweenLastUpdate < KINDA_SMALL_NUMBER) return;
 	if (!ensure(MovementComp)) return;
-
-	FVector TargetLocation = ServerState.Transform.GetLocation();
+	
+	FCubicSpline Spline = CreateSpline();
 	float LerpRatio = ClientTimeSinceUpdate / ClientTimeBetweenLastUpdate;
-	FVector StartLocation = ClientStartTransform.GetLocation();
-	float VelocityToDerivative = ClientTimeBetweenLastUpdate * 100;
-	FVector StartDerivative = ClientStartVelocity * VelocityToDerivative;
-	FVector TargetDerivative = ServerState.Velocity * VelocityToDerivative;
 
-	//FVector NewLocation = FMath::LerpStable(StartLocation, TargetLocation, LerpRatio); Good for some games
-	FVector NewLocation = FMath::CubicInterp(StartLocation, StartDerivative, TargetLocation, TargetDerivative, LerpRatio);
-	GetOwner()->SetActorLocation(NewLocation);
 
-	FVector NewDerivative = FMath::CubicInterpDerivative(StartLocation, StartDerivative, TargetLocation, TargetDerivative, LerpRatio);
-	FVector NewVelocity = NewDerivative / VelocityToDerivative;
-	MovementComp->SetVelocity(NewVelocity);
+	InterpolateLocation(Spline, LerpRatio);
 
-	FQuat TargetRotation = ServerState.Transform.GetRotation();
-	FQuat StartRotation = ClientStartTransform.GetRotation();
+	InterpolateVelocity(Spline, LerpRatio);
 
-	FQuat NewRotation = FQuat::Slerp(StartRotation, TargetRotation, LerpRatio);
-	GetOwner()->SetActorRotation(NewRotation);
+	InterpolateRotation(LerpRatio);
 }
 
+float UBiciReplicationComponent::VelocityToDerivative()
+{
+	return ClientTimeBetweenLastUpdate * 100;
+}
 
+void UBiciReplicationComponent::InterpolateRotation(float LerpRatio)
+{
+	FQuat TargetRotation = ServerState.Transform.GetRotation();
+	FQuat StartRotation = ClientStartTransform.GetRotation();
+	FQuat NewRotation = FQuat::Slerp(StartRotation, TargetRotation, LerpRatio);
+	if (MeshOffSetRoot)
+	{
+		MeshOffSetRoot->SetWorldRotation(NewRotation);
+	}
+
+}
+
+void UBiciReplicationComponent::InterpolateVelocity(const FCubicSpline &Spline, float LerpRatio)
+{
+	FVector NewDerivative = Spline.InterpolateDerivative(LerpRatio);
+	FVector NewVelocity = NewDerivative / VelocityToDerivative();
+	MovementComp->SetVelocity(NewVelocity);
+}
+
+void UBiciReplicationComponent::InterpolateLocation(const FCubicSpline &Spline, float LerpRatio)
+{
+	//FVector NewLocation = FMath::LerpStable(StartLocation, TargetLocation, LerpRatio); Good for some games
+	FVector NewLocation = Spline.InterpolateLocation(LerpRatio);
+	if (MeshOffSetRoot)
+	{
+		MeshOffSetRoot->SetWorldLocation(NewLocation);
+	}
+
+}
+
+FCubicSpline UBiciReplicationComponent::CreateSpline()
+{
+	FCubicSpline Spline;
+	Spline.TargetLocation = ServerState.Transform.GetLocation();
+	Spline.StartLocation = ClientStartTransform.GetLocation();
+	Spline.StartDerivative = ClientStartVelocity * VelocityToDerivative();
+	Spline.TargetDerivative = ServerState.Velocity * VelocityToDerivative();
+	
+	return Spline;
+}
 
 void UBiciReplicationComponent::ClearAcknowledgeMoves(FBiciMoves LastMove)
 {
@@ -112,6 +146,7 @@ void UBiciReplicationComponent::Server_SendMove_Implementation(FBiciMoves Move)
 {
 	if (!ensure(MovementComp)) return;
 
+	ClientSimulatedTime += Move.DeltaTime;
 	MovementComp->SimulateMove(Move);
 
 	UpdateServerState(Move);
@@ -120,6 +155,14 @@ void UBiciReplicationComponent::Server_SendMove_Implementation(FBiciMoves Move)
 
 bool UBiciReplicationComponent::Server_SendMove_Validate(FBiciMoves Move)
 {
+	float ProposedTime = ClientSimulatedTime + Move.DeltaTime;
+	bool ClientNotRunningAhead = ProposedTime < GetWorld()->TimeSeconds;
+	if (!ClientNotRunningAhead)
+	{
+		return false; //Client Movement Time != Servern Time
+	}
+	return Move.IsValid(); //Invalid Scale of Throtting or SteeringThrow = false
+
 	return true;
 }
 
@@ -165,6 +208,13 @@ void UBiciReplicationComponent::SimulatedProxy_OnRep_ServerState()
 
 	ClientTimeBetweenLastUpdate = ClientTimeSinceUpdate;
 	ClientTimeSinceUpdate = 0.0f;
-	ClientStartTransform = GetOwner()->GetActorTransform();
+
+	if (MeshOffSetRoot)
+	{
+		ClientStartTransform.SetLocation(MeshOffSetRoot->GetComponentLocation());
+		ClientStartTransform.SetRotation(MeshOffSetRoot->GetComponentQuat());
+	}
 	ClientStartVelocity = MovementComp->GetVelocity();
+
+	GetOwner()->SetActorTransform(ServerState.Transform);
 }

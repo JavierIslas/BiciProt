@@ -13,12 +13,12 @@ class BICIPROT_API ABiciPawn : public APawn
 {
 	GENERATED_BODY()
 
-private:
+protected:
 
-	UPROPERTY(VisibleAnyWhere)
+	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
 	UBiciMovementComponent* Movement;
 
-	UPROPERTY(VisibleAnyWhere)
+	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
 	UBiciReplicationComponent* Replicator;
 
 	void MoveForward(float Value);
