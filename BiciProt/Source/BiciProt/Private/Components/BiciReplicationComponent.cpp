@@ -33,8 +33,11 @@ void UBiciReplicationComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!ensure(MovementComp)) return;
-
+	if (!MovementComp)
+	{
+		UE_LOG(LogTemp, Error, TEXT("TickComponent MovementComp Not Found"));
+		return;
+	}
 	FBiciMoves LastMove = MovementComp->GetLastMove();
 
 	if (GetOwnerRole() == ROLE_AutonomousProxy)
@@ -68,8 +71,7 @@ void UBiciReplicationComponent::ClientTick(float DeltaTime)
 	ClientTimeSinceUpdate += DeltaTime;
 
 	if (ClientTimeBetweenLastUpdate < KINDA_SMALL_NUMBER) return;
-	if (!ensure(MovementComp)) return;
-	
+	if (!MovementComp) return;
 	FCubicSpline Spline = CreateSpline();
 	float LerpRatio = ClientTimeSinceUpdate / ClientTimeBetweenLastUpdate;
 
@@ -144,8 +146,11 @@ void UBiciReplicationComponent::ClearAcknowledgeMoves(FBiciMoves LastMove)
 
 void UBiciReplicationComponent::Server_SendMove_Implementation(FBiciMoves Move)
 {
-	if (!ensure(MovementComp)) return;
-
+	if (!MovementComp)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Server_SendMove_Implementation MovementComp Not Found"));
+		return;
+	}
 	ClientSimulatedTime += Move.DeltaTime;
 	MovementComp->SimulateMove(Move);
 
@@ -190,8 +195,11 @@ void UBiciReplicationComponent::OnRep_ServerState()
 
 void UBiciReplicationComponent::AuthonomousProxy_OnRep_ServerState()
 {
-	if (!ensure(MovementComp)) return;
-
+	if (!MovementComp)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AuthonomousProxy_OnRep_ServerState MovementComp Not Found"));
+		return;
+	}
 	GetOwner()->SetActorTransform(ServerState.Transform);
 	MovementComp->SetVelocity(ServerState.Velocity);
 
@@ -204,8 +212,11 @@ void UBiciReplicationComponent::AuthonomousProxy_OnRep_ServerState()
 
 void UBiciReplicationComponent::SimulatedProxy_OnRep_ServerState() 
 {
-	if (!ensure(MovementComp)) return;
-
+	if (!MovementComp)
+	{
+		UE_LOG(LogTemp, Error, TEXT("SimulatedProxy_OnRep_ServerState MovementComp Not Found"));
+		return;
+	}
 	ClientTimeBetweenLastUpdate = ClientTimeSinceUpdate;
 	ClientTimeSinceUpdate = 0.0f;
 
