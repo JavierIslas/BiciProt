@@ -67,14 +67,31 @@ void UBiciReplicationComponent::ClientTick(float DeltaTime)
 	ClientTimeSinceUpdate += DeltaTime;
 
 	if (ClientTimeBetweenLastUpdate < KINDA_SMALL_NUMBER) return;
+	if (!ensure(MovementComp)) return;
 
 	FVector TargetLocation = ServerState.Transform.GetLocation();
 	float LerpRatio = ClientTimeSinceUpdate / ClientTimeBetweenLastUpdate;
-	FVector StartLocation = ClientStartLocation;
+	FVector StartLocation = ClientStartTransform.GetLocation();
+	float VelocityToDerivative = ClientTimeBetweenLastUpdate * 100;
+	FVector StartDerivative = ClientStartVelocity * VelocityToDerivative;
+	FVector TargetDerivative = ServerState.Velocity * VelocityToDerivative;
 
-	FVector NewLocation = FMath::LerpStable(StartLocation, TargetLocation, LerpRatio);
+	//FVector NewLocation = FMath::LerpStable(StartLocation, TargetLocation, LerpRatio); Good for some games
+	FVector NewLocation = FMath::CubicInterp(StartLocation, StartDerivative, TargetLocation, TargetDerivative, LerpRatio);
 	GetOwner()->SetActorLocation(NewLocation);
+
+	FVector NewDerivative = FMath::CubicInterpDerivative(StartLocation, StartDerivative, TargetLocation, TargetDerivative, LerpRatio);
+	FVector NewVelocity = NewDerivative / VelocityToDerivative;
+	MovementComp->SetVelocity(NewVelocity);
+
+	FQuat TargetRotation = ServerState.Transform.GetRotation();
+	FQuat StartRotation = ClientStartTransform.GetRotation();
+
+	FQuat NewRotation = FQuat::Slerp(StartRotation, TargetRotation, LerpRatio);
+	GetOwner()->SetActorRotation(NewRotation);
 }
+
+
 
 void UBiciReplicationComponent::ClearAcknowledgeMoves(FBiciMoves LastMove)
 {
@@ -144,7 +161,10 @@ void UBiciReplicationComponent::AuthonomousProxy_OnRep_ServerState()
 
 void UBiciReplicationComponent::SimulatedProxy_OnRep_ServerState() 
 {
+	if (!ensure(MovementComp)) return;
+
 	ClientTimeBetweenLastUpdate = ClientTimeSinceUpdate;
 	ClientTimeSinceUpdate = 0.0f;
-	ClientStartLocation = GetOwner()->GetActorLocation();
+	ClientStartTransform = GetOwner()->GetActorTransform();
+	ClientStartVelocity = MovementComp->GetVelocity();
 }

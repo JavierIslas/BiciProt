@@ -11,7 +11,6 @@ struct FBiciMoves
 {
 	GENERATED_USTRUCT_BODY()
 
-
 	UPROPERTY()
 	float Throttle;
 
