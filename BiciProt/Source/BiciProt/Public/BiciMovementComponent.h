@@ -49,18 +49,15 @@ public:
 	void SimulateMove(FBiciMoves Move);
 
 	void SetVelocity(FVector Velocity);
-
-	FVector GetVelocity() { return Velocity; }
+	FVector GetVelocity() { return Velocity; };
 
 	void SetThrottle(float Throttle);
-
-	float GetThrottle() { return Throttle; }
+	float GetThrottle() { return Throttle; };
 
 	void SetSteeringThrow(float SteeringThrow);
+	float GetSteeringThrow() { return SteeringThrow; };
 
-	float GetSteeringThrow() { return SteeringThrow; }
-
-	FBiciMoves GetLastMove() { return LastMove; }
+	FBiciMoves GetLastMove() { return LastMove; };
 
 private:
 
@@ -82,7 +79,7 @@ private:
 
 	//[N]
 	UPROPERTY(EditAnywhere)
-	float MaxDrivingForce = 20000.0;
+	float MaxDrivingForce = 10000.0;
 
 	//[m]
 	UPROPERTY(EditAnywhere)

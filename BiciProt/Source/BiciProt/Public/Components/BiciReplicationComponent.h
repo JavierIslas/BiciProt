@@ -18,6 +18,7 @@ struct FBiciState
 	UPROPERTY()
 	FTransform Transform;
 
+	UPROPERTY()
 	FBiciMoves LastMove;
 
 };
@@ -88,9 +89,7 @@ private:
 
 	UFUNCTION()
 	void OnRep_ServerState();
-
 	void AuthonomousProxy_OnRep_ServerState();
-
 	void SimulatedProxy_OnRep_ServerState();
 
 	UPROPERTY(ReplicatedUsing = OnRep_ServerState)

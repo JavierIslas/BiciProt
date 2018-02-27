@@ -2,7 +2,6 @@
 
 #include "BiciReplicationComponent.h"
 #include "UnrealNetwork.h"
-#include "BiciMovementComponent.h"
 #include "GameFramework/Actor.h"
 
 
@@ -71,7 +70,11 @@ void UBiciReplicationComponent::ClientTick(float DeltaTime)
 	ClientTimeSinceUpdate += DeltaTime;
 
 	if (ClientTimeBetweenLastUpdate < KINDA_SMALL_NUMBER) return;
-	if (!MovementComp) return;
+	if (!MovementComp)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ClientTick MovementComp Not Found"));
+		return;
+	}
 	FCubicSpline Spline = CreateSpline();
 	float LerpRatio = ClientTimeSinceUpdate / ClientTimeBetweenLastUpdate;
 
@@ -212,11 +215,7 @@ void UBiciReplicationComponent::AuthonomousProxy_OnRep_ServerState()
 
 void UBiciReplicationComponent::SimulatedProxy_OnRep_ServerState() 
 {
-	if (!MovementComp)
-	{
-		UE_LOG(LogTemp, Error, TEXT("SimulatedProxy_OnRep_ServerState MovementComp Not Found"));
-		return;
-	}
+	
 	ClientTimeBetweenLastUpdate = ClientTimeSinceUpdate;
 	ClientTimeSinceUpdate = 0.0f;
 
@@ -224,6 +223,12 @@ void UBiciReplicationComponent::SimulatedProxy_OnRep_ServerState()
 	{
 		ClientStartTransform.SetLocation(MeshOffSetRoot->GetComponentLocation());
 		ClientStartTransform.SetRotation(MeshOffSetRoot->GetComponentQuat());
+	}
+
+	if (MovementComp == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("SimulatedProxy_OnRep_ServerState MovementComp Not Found"));
+		return;
 	}
 	ClientStartVelocity = MovementComp->GetVelocity();
 

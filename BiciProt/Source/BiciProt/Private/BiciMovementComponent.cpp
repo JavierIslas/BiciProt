@@ -28,10 +28,11 @@ void UBiciMovementComponent::BeginPlay()
 void UBiciMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
 	if (GetOwnerRole() == ROLE_AutonomousProxy || GetOwner()->GetRemoteRole() == ROLE_SimulatedProxy)
 	{
-		FBiciMoves Move = CreateMove(DeltaTime);
-		SimulateMove(Move);
+		LastMove = CreateMove(DeltaTime);
+		SimulateMove(LastMove);
 	}
 }
 	
@@ -87,7 +88,7 @@ void UBiciMovementComponent::SimulateMove(FBiciMoves Move)
 
 	FVector Acceleration = Force / Mass;
 
-	Velocity += Acceleration * Move.DeltaTime;
+	Velocity += (Acceleration * Move.DeltaTime);
 
 	ApplyRotation(Move.DeltaTime, Move.SteeringThrow);
 

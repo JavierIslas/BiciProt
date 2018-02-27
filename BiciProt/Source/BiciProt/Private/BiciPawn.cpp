@@ -4,7 +4,7 @@
 #include "Components/InputComponent.h"
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
-#include "UnrealNetwork.h"
+
 
 // Sets default values
 ABiciPawn::ABiciPawn()
@@ -19,17 +19,18 @@ ABiciPawn::ABiciPawn()
 	bReplicates = true;
 	bReplicateMovement = false;
 
-	if (HasAuthority())
-	{
-		NetUpdateFrequency = 1.0f;
-	}
-
 }
 
 // Called when the game starts or when spawned
 void ABiciPawn::BeginPlay()
 {
 	Super::BeginPlay();
+
+
+	if (HasAuthority())
+	{
+		NetUpdateFrequency = 1.0f;
+	}
 	
 }
 
@@ -61,11 +62,15 @@ void ABiciPawn::Tick(float DeltaTime)
 
 void ABiciPawn::MoveForward(float Value)
 {
+	if (!Movement) return;
+
 	Movement->SetThrottle(Value);
 }
 
 void ABiciPawn::MoveRight(float Value)
 {
+	if (!Movement) return;
+
 	Movement->SetSteeringThrow(Value);
 }
 
