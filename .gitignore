@@ -54,6 +54,7 @@ SourceArt/**/*.tga
 
 # Binary Files
 */Binaries/*
+!*/Binaries/Win64/*
 
 # Builds
 Build/*
@@ -77,9 +78,6 @@ Build/*/**
 
 # Cache files for the editor to use
 */DerivedDataCache/*
-CoopGameProt/Build/
-*.txt
-*.pak
-*.zip
-CoopGameProt/WindowsNoEditor/
-CoopGameProt.rar
+
+# Test to ignore code
+*/Source/*
